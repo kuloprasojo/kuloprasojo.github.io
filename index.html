@@ -1,53 +1,326 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS Tracker</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <style>
-        #map {
-            height: 500px;
-            width: 100%;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pencarian Peserta KDKMP</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f4f4f4;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+.header{
+    background:#0d6efd;
+    color:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+.search-box{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+}
+
+.info{
+    margin-top:10px;
+    color:#666;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:15px;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+}
+
+.card h3{
+    margin-bottom:10px;
+}
+
+.label{
+    font-weight:bold;
+}
+
+.status{
+    display:inline-block;
+    padding:6px 15px;
+    border-radius:5px;
+    color:white;
+    font-weight:bold;
+}
+
+.L{
+    background:#198754;
+}
+
+.MS{
+    background:#0d6efd;
+}
+
+.TMS{
+    background:#dc3545;
+}
+
+.loading{
+    text-align:center;
+    padding:30px;
+    font-size:18px;
+}
+
+</style>
 </head>
 <body>
-    <h2>GPS Tracker - Live Location with Route</h2>
-    <div id="map"></div>
 
-    <script>
-        var map = L.map('map').setView([0, 0], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+<div class="container">
 
-        var marker = L.marker([0, 0]).addTo(map);
-        var route = L.polyline([], {color: 'blue'}).addTo(map);
-        var positions = [];
+    <div class="header">
+        <h2>Pencarian Peserta KDKMP / KNMP</h2>
+        <p>Cari berdasarkan Nama atau Nomor Ujian</p>
+    </div>
 
-        function fetchGPSData() {
-            fetch('https://api.thingspeak.com/channels/2854451/feeds/last.json?api_key=XEPE1127XOZQMGTY')
-                .then(response => response.json())
-                .then(data => {
-                    let latitude = parseFloat(data.field1);
-                    let longitude = parseFloat(data.field2);
-                    let timestamp = data.created_at;
-                    console.log("Latitude: ", latitude, "Longitude: ", longitude, "Timestamp: ", timestamp);
-                    
-                    map.setView([latitude, longitude], 15);
-                    marker.setLatLng([latitude, longitude]).bindPopup("Updated at: " + timestamp).openPopup();
-                    
-                    // Tambahkan titik ke rute
-                    positions.push([latitude, longitude]);
-                    route.setLatLngs(positions);
-                })
-                .catch(error => console.error('Error fetching data:', error));
+    <div class="search-box">
+
+        <input
+            type="text"
+            id="keyword"
+            placeholder="Ketik Nama atau Nomor Ujian..."
+        >
+
+        <div class="info" id="info">
+            Memuat data...
+        </div>
+
+    </div>
+
+    <div id="result">
+        <div class="loading">
+            Sedang memuat data...
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+let peserta = [];
+
+loadData();
+
+async function loadData(){
+
+    try{
+
+        const response = await fetch("peserta.txt");
+
+        const text = await response.text();
+
+        parseData(text);
+
+        document.getElementById("info").innerHTML =
+            "Total Peserta : " + peserta.length;
+
+        document.getElementById("result").innerHTML =
+            "<div class='card'>Data berhasil dimuat.</div>";
+
+    }
+    catch(err){
+
+        document.getElementById("info").innerHTML =
+            "Gagal membaca peserta.txt";
+
+        console.log(err);
+
+    }
+
+}
+
+function parseData(text){
+
+    const lines = text
+        .split(/\r?\n/)
+        .map(x => x.trim())
+        .filter(x => x !== "");
+
+    for(let i=0;i<lines.length;i++){
+
+        const nomor = lines[i];
+
+        if(/^P\d+$/i.test(nomor)){
+
+            let nama = "";
+            let jabatan = "";
+            let status = "";
+
+            if(lines[i+1]){
+                nama = lines[i+1];
+            }
+
+            for(let j=i;j<i+20;j++){
+
+                if(!lines[j]) continue;
+
+                if(
+                    lines[j].includes("KDKMP") ||
+                    lines[j].includes("KNMP") ||
+                    lines[j].includes("MANAJER")
+                ){
+                    jabatan = lines[j];
+                    break;
+                }
+
+            }
+
+            for(let j=i;j<i+30;j++){
+
+                if(!lines[j]) continue;
+
+                if(
+                    lines[j] === "L" ||
+                    lines[j] === "MS" ||
+                    lines[j] === "TMS"
+                ){
+                    status = lines[j];
+                    break;
+                }
+
+            }
+
+            peserta.push({
+                nomor,
+                nama,
+                jabatan,
+                status
+            });
+
         }
 
-        fetchGPSData();
-        setInterval(fetchGPSData, 10000); // Update setiap 10 detik
-    </script>
+    }
+
+}
+
+document
+.getElementById("keyword")
+.addEventListener("keyup", cariPeserta);
+
+function cariPeserta(){
+
+    const key =
+        this.value.trim().toUpperCase();
+
+    if(key.length < 2){
+
+        document.getElementById("result").innerHTML =
+            "";
+
+        return;
+    }
+
+    const hasil = peserta.filter(item =>
+
+        item.nama.toUpperCase().includes(key) ||
+        item.nomor.toUpperCase().includes(key)
+
+    );
+
+    tampilkan(hasil.slice(0,100));
+
+}
+
+function tampilkan(data){
+
+    let html = "";
+
+    if(data.length === 0){
+
+        html =
+        `<div class="card">
+            Data tidak ditemukan
+        </div>`;
+
+        document.getElementById("result").innerHTML =
+            html;
+
+        return;
+
+    }
+
+    data.forEach(item => {
+
+        html += `
+
+        <div class="card">
+
+            <h3>${item.nama}</h3>
+
+            <p>
+                <span class="label">
+                    Nomor Ujian :
+                </span>
+                ${item.nomor}
+            </p>
+
+            <br>
+
+            <p>
+                <span class="label">
+                    Jabatan :
+                </span>
+                ${item.jabatan}
+            </p>
+
+            <br>
+
+            <p>
+                <span class="label">
+                    Status :
+                </span>
+
+                <span class="status ${item.status}">
+                    ${item.status || "-"}
+                </span>
+
+            </p>
+
+        </div>
+
+        `;
+
+    });
+
+    document.getElementById("result").innerHTML =
+        html;
+
+}
+
+</script>
+
 </body>
 </html>
