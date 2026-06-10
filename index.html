@@ -1,40 +1,23 @@
 <!DOCTYPE html>
+
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Pencarian Peserta KDKMP</title>
+<title>Pencarian Peserta KDKMP / KNMP</title>
 
 <style>
 
 *{
-    box-sizing:border-box;
     margin:0;
     padding:0;
+    box-sizing:border-box;
     font-family:Arial, sans-serif;
 }
-<footer style="
-    text-align:center;
-    margin-top:30px;
-    padding:15px;
-    color:#666;
-    font-size:14px;
-">
-    © 2026
-    <a href="https://www.instagram.com/rizkysarsyah"
-       target="_blank"
-       style="
-            color:#0d6efd;
-            text-decoration:none;
-            font-weight:bold;
-       ">
-       Rizky Sarsyah
-    </a>
-    . All Rights Reserved.
-</footer>
+
 body{
-    background:#f4f4f4;
+    background:#f4f6f9;
     padding:20px;
 }
 
@@ -46,41 +29,67 @@ body{
 .header{
     background:#0d6efd;
     color:white;
-    padding:20px;
+    padding:25px;
+    border-radius:12px;
+    margin-bottom:15px;
+}
+
+.header h2{
+    margin-bottom:5px;
+}
+
+.developer-badge{
+    background:white;
+    padding:12px;
     border-radius:10px;
+    text-align:center;
     margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    color:#666;
+}
+
+.developer-badge a{
+    color:#E4405F;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.developer-badge a:hover{
+    text-decoration:underline;
 }
 
 .search-box{
     background:white;
     padding:20px;
-    border-radius:10px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
     margin-bottom:20px;
 }
 
 input{
     width:100%;
     padding:15px;
-    border:1px solid #ccc;
+    border:1px solid #ddd;
     border-radius:8px;
     font-size:16px;
 }
 
 .info{
-    margin-top:10px;
+    margin-top:15px;
     color:#666;
 }
 
 .card{
     background:white;
+    border-radius:12px;
     padding:20px;
-    border-radius:10px;
     margin-bottom:15px;
-    box-shadow:0 2px 5px rgba(0,0,0,.1);
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
 
 .card h3{
-    margin-bottom:10px;
+    color:#0d6efd;
+    margin-bottom:15px;
 }
 
 .label{
@@ -90,7 +99,7 @@ input{
 .status{
     display:inline-block;
     padding:6px 15px;
-    border-radius:5px;
+    border-radius:6px;
     color:white;
     font-weight:bold;
 }
@@ -109,40 +118,61 @@ input{
 
 .loading{
     text-align:center;
-    padding:30px;
     font-size:18px;
+    padding:30px;
+}
+
+.footer{
+    text-align:center;
+    color:#999;
+    margin-top:30px;
+    font-size:13px;
 }
 
 </style>
+
 </head>
 <body>
 
 <div class="container">
 
-    <div class="header">
-        <h2>Pencarian Peserta KDKMP / KNMP</h2>
-        <p>Cari berdasarkan Nama atau Nomor Ujian</p>
+```
+<div class="header">
+    <h2>Pencarian Peserta KDKMP / KNMP</h2>
+    <p>Cari berdasarkan Nama atau Nomor Ujian</p>
+</div>
+
+<div class="developer-badge">
+    Developed by
+    <a href="https://www.instagram.com/rizkysarsyah" target="_blank">
+        Rizky Sarsyah
+    </a>
+</div>
+
+<div class="search-box">
+
+    <input
+        type="text"
+        id="keyword"
+        placeholder="Ketik Nama atau Nomor Ujian..."
+    >
+
+    <div class="info" id="info">
+        Memuat data...
     </div>
 
-    <div class="search-box">
+</div>
 
-        <input
-            type="text"
-            id="keyword"
-            placeholder="Ketik Nama atau Nomor Ujian..."
-        >
-
-        <div class="info" id="info">
-            Memuat data...
-        </div>
-
+<div id="result">
+    <div class="loading">
+        Sedang memuat data peserta...
     </div>
+</div>
 
-    <div id="result">
-        <div class="loading">
-            Sedang memuat data...
-        </div>
-    </div>
+<div class="footer">
+    © 2026 Sistem Pencarian Peserta
+</div>
+```
 
 </div>
 
@@ -156,31 +186,37 @@ async function loadData(){
 
     try{
 
-        const response = await fetch("peserta.txt");
+        const response = await fetch("peserta.txt?v=1");
+
+        if(!response.ok){
+            throw new Error("File peserta.txt tidak ditemukan");
+        }
 
         const text = await response.text();
 
         parseData(text);
 
         document.getElementById("info").innerHTML =
-            "Total Peserta : " + peserta.length;
+            "Total Peserta : " + peserta.length.toLocaleString('id-ID');
 
         document.getElementById("result").innerHTML =
-            "<div class='card'>Data berhasil dimuat.</div>";
+            "<div class='card'>✅ Data berhasil dimuat. Silakan lakukan pencarian.</div>";
 
     }
     catch(err){
 
         document.getElementById("info").innerHTML =
-            "Gagal membaca peserta.txt";
+            "❌ Gagal membaca peserta.txt";
 
-        console.log(err);
+        console.error(err);
 
     }
 
 }
 
 function parseData(text){
+
+    peserta = [];
 
     const lines = text
         .split(/\r?\n/)
@@ -201,9 +237,7 @@ function parseData(text){
                 nama = lines[i+1];
             }
 
-            for(let j=i;j<i+20;j++){
-
-                if(!lines[j]) continue;
+            for(let j=i;j<i+20 && j<lines.length;j++){
 
                 if(
                     lines[j].includes("KDKMP") ||
@@ -216,9 +250,7 @@ function parseData(text){
 
             }
 
-            for(let j=i;j<i+30;j++){
-
-                if(!lines[j]) continue;
+            for(let j=i;j<i+30 && j<lines.length;j++){
 
                 if(
                     lines[j] === "L" ||
@@ -255,10 +287,10 @@ function cariPeserta(){
 
     if(key.length < 2){
 
-        document.getElementById("result").innerHTML =
-            "";
+        document.getElementById("result").innerHTML = "";
 
         return;
+
     }
 
     const hasil = peserta.filter(item =>
@@ -280,7 +312,7 @@ function tampilkan(data){
 
         html =
         `<div class="card">
-            Data tidak ditemukan
+            Data tidak ditemukan.
         </div>`;
 
         document.getElementById("result").innerHTML =
@@ -299,32 +331,25 @@ function tampilkan(data){
             <h3>${item.nama}</h3>
 
             <p>
-                <span class="label">
-                    Nomor Ujian :
-                </span>
+                <span class="label">Nomor Ujian :</span>
                 ${item.nomor}
             </p>
 
             <br>
 
             <p>
-                <span class="label">
-                    Jabatan :
-                </span>
-                ${item.jabatan}
+                <span class="label">Jabatan :</span>
+                ${item.jabatan || "-"}
             </p>
 
             <br>
 
             <p>
-                <span class="label">
-                    Status :
-                </span>
+                <span class="label">Status :</span>
 
                 <span class="status ${item.status}">
                     ${item.status || "-"}
                 </span>
-
             </p>
 
         </div>
@@ -333,8 +358,7 @@ function tampilkan(data){
 
     });
 
-    document.getElementById("result").innerHTML =
-        html;
+    document.getElementById("result").innerHTML = html;
 
 }
 
